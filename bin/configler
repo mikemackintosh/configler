@@ -49,7 +49,7 @@ class App
     begin
       configler = Configler::Create.new options
   # Catch the error
-    rescue Configler::MissingParameters => e
+    rescue Configler::Create::MissingParameters => e
       Configler::Cli::fatal(e)
   # Didnt fail, so generate keys
     else

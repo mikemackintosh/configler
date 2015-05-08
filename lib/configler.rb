@@ -8,15 +8,14 @@ require 'configler/cli'
 
 module Configler
 
-  class MissingParameters < RuntimeError; end
-
-  attr_writer :pkey, :private_key, :public_key
-
   class Create
+
+    class MissingParameters < RuntimeError; end
+
     def initialize(options=nil)
 
       unless options.is_a? Hash
-        fail Configler::MissingParameters,
+        fail Configler::Create::MissingParameters,
           'Incorrect parameters passed to Configler::Create'
       end
 
