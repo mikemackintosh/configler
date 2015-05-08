@@ -1,0 +1,107 @@
+#!/usr/bin/env ruby
+# coding: utf-8
+
+require 'configler'
+require 'methadone'
+
+class App
+  include Methadone::Main
+
+  leak_exceptions true
+
+# Set Version
+  version Configler::VERSION
+  description "Ruby project configuration protection"
+
+# This is the main instructions
+  main do |config|
+
+  # Spitout banner
+    Configler::Cli::banner unless options['nobanner'.to_sym]
+
+  # Checking for config file
+    unless File.exist? config
+      Configler::Cli::fatal("'#{config}' is not a valid file.")
+    end
+
+  # We will provide you with an
+  # environment if you leave it out
+    unless options[:env]
+      Configler::Cli::info("No ENV variable provided. Generating one.") unless options[:quiet]
+      options[:env] = Configler::Generator.env
+    end
+    ENV[options[:env]] = options[:env]
+
+  # Passwords? No thanks
+=begin    unless options[:z]
+      Configler::Cli::info("No password provided. Generating one.") unless options[:quiet]
+      options[:password] = Configler::Generator.password
+    else
+      options[:password] = nil
+    end
+=end
+  # Size does matter
+    unless options[:bits].is_a? Integer
+      options[:bits] = 2048
+    end
+
+  # Begin to generate PKI
+    begin
+      configler = Configler::Create.new options
+  # Catch the error
+    rescue Configler::MissingParameters => e
+      Configler::Cli::fatal(e)
+  # Didnt fail, so generate keys
+    else
+      Configler::Cli::info("Generating Private and Public keys.") unless options[:quiet]
+    end
+
+  # Time to encrypt
+    Configler::Cli::info("Encrypting file '#{config}'.") unless options[:quiet]
+    encrypted = configler.encrypt(File.read(config))
+    configler.save
+
+    if configler.test(encrypted)
+      Configler::Cli::success("Successfully encrypted file '#{config}' as 'configled'.")
+    else
+      Configler::Cli::fatal("Failed to generate encrypted config file.")      
+    end
+    
+  # Test it
+
+
+  end
+
+# These are the options
+  on('-v', '--env ENV',           'Secret environment variable')
+  #on('-p', '--password PASSWORD', 'Super secret password')
+  on('-z', '--no-password',       'Super secret password')
+  on('-b', '--bits BITS',         'Private Key Bit Length, default=2048')
+  on('-e', '--encrypt',           'File to encrypt')
+  on('-d', '--decrypt',           'File to decrypt')
+  on('-q', '--quiet',             'Hide informational messages')
+  on('-n', '--nobanner',          'Hide banner')
+
+# Required Args
+  arg :config
+
+  begin
+
+  # No Args?
+    if ARGV.empty?
+      Configler::Cli::banner
+      Configler::Cli::info("No options given; see 'configler --help' for options.")
+    end
+
+    go!
+
+ rescue Interrupt
+    print "\b\b\n"; # Remove ^C from screen
+    Configler::Cli::fatal("Caught interrupt; exiting.")
+  rescue => e
+    # Spitout banner
+    backtrace = e.backtrace.join("\n\t")
+    Configler::Cli::fatal("An error occurred: #{e.class.name}: #{e.message}\n\nBacktrace:\n\n\t#{backtrace}")
+  end
+
+end

@@ -1,2 +1,5 @@
 /.bundle/
 /vendor/
+Gemfile.lock
+config.yaml
+configled
